@@ -16,63 +16,68 @@ const handler = async (
       }[]
   >
 ) => {
-  if (req.method === "POST") {
-    const body = req.body as Data;
-    if (!body.type) {
-      return res.status(400).json({ error: "type is required" });
-    }
-    if (body.type !== "code" && body.type !== "name") {
-      return res.status(400).json({ error: "type is name or code" });
-    }
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto(
-      "http://www.sci.p.alexu.edu.eg/ar/Academics/ExamTableTime/2018/"
-    );
-    //get all rows of the table that contains the codes
-    const rows = await page.$$("tr");
-    const times = [];
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const cells = await row.$$("td");
-      const code = await cells[0]?.evaluate((el) => el.textContent);
-      const name = await cells[2]?.evaluate((el) => el.textContent);
-      if (body.type === "code") {
-        if (!body.data) {
-          return res.status(400).json({ error: "no codes" });
+  try {
+    if (req.method === "POST") {
+      const body = req.body as Data;
+      if (!body.type) {
+        return res.status(400).json({ error: "type is required" });
+      }
+      if (body.type !== "code" && body.type !== "name") {
+        return res.status(400).json({ error: "type is name or code" });
+      }
+      const browser = await puppeteer.launch();
+      const page = await browser.newPage();
+      await page.goto(
+        "http://www.sci.p.alexu.edu.eg/ar/Academics/ExamTableTime/2018/"
+      );
+      //get all rows of the table that contains the codes
+      const rows = await page.$$("tr");
+      const times = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = await row.$$("td");
+        const code = await cells[0]?.evaluate((el) => el.textContent);
+        const name = await cells[2]?.evaluate((el) => el.textContent);
+        if (body.type === "code") {
+          if (!body.data) {
+            return res.status(400).json({ error: "no codes" });
+          }
+          if (code && body.data.includes(code)) {
+            const time = await cells[4]?.evaluate((el) => el.textContent);
+            if (time && name) {
+              times.push({ name, time });
+            }
+          }
         }
-        if (code && body.data.includes(code)) {
-          const time = await cells[4]?.evaluate((el) => el.textContent);
-          if (time && name) {
-            times.push({ name, time });
+        if (body.type === "name") {
+          if (!body.data) {
+            return res.status(400).json({ error: "no names" });
+          }
+          if (name && body.data.includes(name)) {
+            const time = await cells[4]?.evaluate((el) => el.textContent);
+            if (time && name) {
+              times.push({ name, time });
+            }
           }
         }
       }
-      if (body.type === "name") {
-        if (!body.data) {
-          return res.status(400).json({ error: "no names" });
+      if (times.length === 0) {
+        if (body.type === "code") {
+          return res
+            .status(400)
+            .json({ error: "no subject with entered codes found" });
         }
-        if (name && body.data.includes(name)) {
-          const time = await cells[4]?.evaluate((el) => el.textContent);
-          if (time && name) {
-            times.push({ name, time });
-          }
+        if (body.type === "name") {
+          return res
+            .status(400)
+            .json({ error: "no subject with entered names found" });
         }
       }
+      return res.json(times);
     }
-    if (times.length === 0) {
-      if (body.type === "code") {
-        return res
-          .status(400)
-          .json({ error: "no subject with entered codes found" });
-      }
-      if (body.type === "name") {
-        return res
-          .status(400)
-          .json({ error: "no subject with entered names found" });
-      }
-    }
-    return res.json(times);
+  } catch (e) {
+    // @ts-ignore
+    res.status(500).json({ error: e.message || e.toString() });
   }
 };
 export default handler;
