@@ -17,6 +17,7 @@ import {
   InputWrapper,
   Footer,
 } from "@mantine/core";
+import { useEffect } from "react";
 const Home: NextPage = () => {
   const [table, setTable] = React.useState<{ name: string; time: string }[]>(
     []
@@ -26,6 +27,15 @@ const Home: NextPage = () => {
   const [error, setError] = React.useState("");
   const [type, setType] = React.useState("code");
   const [success, setSuccess] = React.useState(false);
+
+  useEffect(() => {
+    const table = localStorage.getItem("table");
+    if (table) {
+      setTable(JSON.parse(table));
+      setSuccess(true);
+    }
+  }, []);
+
   const changeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     const newCodes = [...data];
@@ -54,6 +64,7 @@ const Home: NextPage = () => {
         } else {
           setTable(data);
           setSuccess(true);
+          localStorage.setItem("table", JSON.stringify(data));
         }
       })
       .catch((err) => setError(err));
