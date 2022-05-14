@@ -15,6 +15,7 @@ import {
   useMantineColorScheme,
   ActionIcon,
   InputWrapper,
+  Footer,
 } from "@mantine/core";
 const Home: NextPage = () => {
   const [table, setTable] = React.useState<{ name: string; time: string }[]>(
@@ -64,9 +65,23 @@ const Home: NextPage = () => {
   return (
     <AppShell
       padding="md"
+      footer={
+        <Footer height={"10vh"}>
+          <Title order={6}>
+            Made by{" "}
+            <a
+              target="_blank"
+              href="https://www.jankaram.com/"
+              rel="noreferrer"
+            >
+              Jan Karam
+            </a>
+          </Title>
+        </Footer>
+      }
       header={
         <Header
-          height={"auto"}
+          height={"10vh"}
           p="xs"
           sx={{ display: "flex", justifyContent: "space-between" }}
         >
@@ -91,7 +106,7 @@ const Home: NextPage = () => {
       })}
     >
       <form onSubmit={submitHandler}>
-        <Stack sx={{ maxWidth: "500px" }}>
+        <Stack sx={{ maxWidth: "500px", height: "80vh" }}>
           <Button type="button" onClick={() => setData([...data, ""])}>
             Add Row
           </Button>
@@ -137,30 +152,30 @@ const Home: NextPage = () => {
               Submit
             </Button>
           </Tooltip>
+          {loading ? <Title order={3}>loading.........</Title> : null}
+          {error.length > 0 && !loading ? (
+            <Title order={3} color="red">
+              {error}
+            </Title>
+          ) : null}
+          {table.length > 0 ? (
+            <Table sx={{ maxWidth: "500px" }}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              {table?.map((item, i) => (
+                <tr key={item.name + i}>
+                  <td>{item.name}</td>
+                  <td>{item.time}</td>
+                </tr>
+              ))}
+            </Table>
+          ) : null}
         </Stack>
       </form>
-      {loading ? <Title order={3}>loading.........</Title> : null}
-      {error.length > 0 && !loading ? (
-        <Title order={3} color="red">
-          {error}
-        </Title>
-      ) : null}
-      {table.length > 0 ? (
-        <Table sx={{ maxWidth: "500px" }}>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          {table?.map((item, i) => (
-            <tr key={item.name + i}>
-              <td>{item.name}</td>
-              <td>{item.time}</td>
-            </tr>
-          ))}
-        </Table>
-      ) : null}
     </AppShell>
   );
 };
