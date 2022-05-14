@@ -1,31 +1,39 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { NextApiRequest, NextApiResponse } from "next";
-import puppeteer from "puppeteer";
+let chrome = {};
+let puppeteer;
 
-type Data = { type: "name" | "code"; data: string[] };
+if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+  // running on the Vercel platform.
+  chrome = require("chrome-aws-lambda");
+  puppeteer = require("puppeteer-core");
+} else {
+  // running locally.
+  puppeteer = require("puppeteer");
+}
 
-const handler = async (
-  req: NextApiRequest,
-  res: NextApiResponse<
-    | {
-        error: string;
-      }
-    | {
-        name: string;
-        time: string;
-      }[]
-  >
-) => {
+const handler = async (req, res) => {
   try {
     if (req.method === "POST") {
-      const body = req.body as Data;
+      const body = req.body;
       if (!body.type) {
         return res.status(400).json({ error: "type is required" });
       }
       if (body.type !== "code" && body.type !== "name") {
         return res.status(400).json({ error: "type is name or code" });
       }
-      const browser = await puppeteer.launch();
+      const browser = process.env.AWS_LAMBDA_FUNCTION_VERSION
+        ? await puppeteer.launch({
+            args: [
+              ...chrome.args,
+              "--hide-scrollbars",
+              "--disable-web-security",
+            ],
+            defaultViewport: chrome.defaultViewport,
+            executablePath: await chrome.executablePath,
+            headless: true,
+            ignoreHTTPSErrors: true,
+          })
+        : await puppeteer.launch();
       const page = await browser.newPage();
       await page.goto(
         "http://www.sci.p.alexu.edu.eg/ar/Academics/ExamTableTime/2018/"
@@ -76,7 +84,6 @@ const handler = async (
       return res.json(times);
     }
   } catch (e) {
-    // @ts-ignore
     res.status(500).json({ error: e.message || e.toString() });
   }
 };
